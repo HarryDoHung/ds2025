@@ -1,0 +1,155 @@
+% !TEX root = 01_tcp_file_transfer.tex
+
+\documentclass[a4paper,12pt]{article}
+
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{margin=1in}
+
+\lstset{
+    language=Python,
+    frame=single,
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{green!50!black},
+    numbers=left,
+    numberstyle=\tiny,
+    stepnumber=1,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    breaklines=true,
+    breakatwhitespace=true,
+    tabsize=4
+}
+
+\title{Practical Work 1: TCP File Transfer}
+\author{Your Name \\ University Name}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Goal}
+The goal of this practical work is to implement a 1-to-1 file transfer system over TCP/IP using socket programming in Python. The system includes:
+\begin{itemize}
+    \item One server
+    \item One client
+    \item File transfer functionality
+\end{itemize}
+
+\section*{Protocol Design}
+The system uses a client-server model. Below is the flow of interaction:
+\begin{enumerate}
+    \item The server starts and listens on a specific IP address and port.
+    \item The client connects to the server and requests the file.
+    \item The server sends the file in chunks to the client.
+    \item The client writes the received chunks to a file.
+\end{enumerate}
+
+\section*{System Design}
+The client and server are implemented as follows:
+\begin{itemize}
+    \item **Server**:
+          \begin{itemize}
+              \item Creates a socket, binds it to a port, and listens for client connections.
+              \item Sends the file in chunks to the connected client.
+          \end{itemize}
+    \item **Client**:
+          \begin{itemize}
+              \item Connects to the server using its IP and port.
+              \item Receives the file and writes it to disk.
+          \end{itemize}
+\end{itemize}
+
+The diagram below shows the client-server interaction:
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=\textwidth]{diagram.png}
+    \caption{Client-Server Protocol Workflow}
+    \label{fig:protocol}
+\end{figure}
+
+\section*{Implementation}
+The implementation is done in Python using socket programming. Below are the code snippets for the server and client:
+
+\subsection*{Server Code}
+\begin{lstlisting}
+import socket
+
+HOST = '127.0.0.1'
+PORT = 1234
+BUFFER_SIZE = 1024
+FILE_TO_SEND = 'testing_file.txt'
+
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_socket.bind((HOST, PORT))
+server_socket.listen(1)
+print(f"Server listening on {HOST}:{PORT}")
+
+conn, addr = server_socket.accept()
+print(f"Connection established with {addr}")
+
+with open(FILE_TO_SEND, 'rb') as file:
+    while (data := file.read(BUFFER_SIZE)):
+        conn.sendall(data)
+
+print("File sent successfully.")
+conn.close()
+server_socket.close()
+\end{lstlisting}
+
+\subsection*{Client Code}
+\begin{lstlisting}
+import socket
+
+HOST = '127.0.0.1'
+PORT = 1234
+BUFFER_SIZE = 1024
+OUTPUT_FILE = 'received_file.txt'
+
+client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client_socket.connect((HOST, PORT))
+print(f"Connected to server at {HOST}:{PORT}")
+
+with open(OUTPUT_FILE, 'wb') as file:
+    while True:
+        data = client_socket.recv(BUFFER_SIZE)
+        if not data:
+            break
+        file.write(data)
+
+print("File received and saved successfully.")
+client_socket.close()
+\end{lstlisting}
+
+\section*{Testing}
+\subsection*{Local Testing}
+Both server and client scripts were run on the same machine. The following steps were performed:
+\begin{enumerate}
+    \item The server was started, and it displayed `Server listening on 127.0.0.1:8080`.
+    \item The client connected to the server and successfully received the file.
+    \item The received file matched the original file.
+\end{enumerate}
+
+\subsection*{Network Testing}
+The server and client were run on different machines connected to the same network. The client successfully received the file over the network.
+
+\section*{Conclusion}
+The TCP file transfer system was successfully implemented and tested. The system ensures reliable file transfer between a server and a client using Python socket programming.
+
+\section*{References}
+\begin{itemize}
+    \item Python Socket Documentation: \url{https://docs.python.org/3/library/socket.html}
+    \item LaTeX Documentation: \url{https://www.latex-project.org/}
+\end{itemize}
+
+\end{document}
