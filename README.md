@@ -11,5 +11,5 @@ Student Info
 
 * Student Name: Do Cong Tuan Hung
 * Student ID: 22Bi13181
-* Student Group ID: 4
+* Student Group ID: 6
 
