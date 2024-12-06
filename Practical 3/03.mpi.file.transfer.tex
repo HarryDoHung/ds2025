@@ -1,0 +1,144 @@
+\documentclass[a4paper,12pt]{article}
+
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{margin=1in}
+
+\lstset{
+    language=Python,
+    frame=single,
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{green!50!black},
+    numbers=left,
+    numberstyle=\tiny,
+    stepnumber=1,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    breaklines=true,
+    breakatwhitespace=true,
+    tabsize=4
+}
+
+\title{Practical Work 3}
+\author{Do Cong Tuan Hung}
+\date{6/12/2024}
+
+\begin{document}
+
+\maketitle
+
+\section*{Goal}
+The goal of this practical work is to upgrade the previously implemented TCP file transfer system to use the Message Passing Interface (MPI). The system now includes:
+\begin{itemize}
+    \item MPI master process
+    \item MPI worker processes
+    \item File transfer functionality using MPI
+\end{itemize}
+
+\section*{Why MPI4Py?}
+MPI4Py is chosen because it provides Python bindings for the MPI standard, enabling efficient parallel communication between processes. It integrates seamlessly with Python’s syntax and offers flexibility in implementing file transfer tasks.
+
+\section*{Protocol Design}
+The file transfer system is designed as follows:
+\begin{enumerate}
+    \item The master process reads the file and divides it into chunks.
+    \item The master sends each chunk to a worker process.
+    \item Worker processes receive their assigned chunks and write them to disk.
+    \item Finally, the chunks are reassembled into the complete file.
+\end{enumerate}
+
+\section*{System Design}
+The system is organized into the following components:
+\begin{itemize}
+    \item **Master Process**:
+          \begin{itemize}
+              \item Reads the file and splits it into chunks.
+              \item Distributes chunks to worker processes using MPI communication.
+          \end{itemize}
+    \item **Worker Processes**:
+          \begin{itemize}
+              \item Receive file chunks from the master process.
+              \item Write the received chunks to disk.
+          \end{itemize}
+\end{itemize}
+
+\section*{Implementation}
+The implementation is done using the Python `mpi4py` library. Below are the code snippets for the master and worker processes:
+
+\subsection*{Master Process Code}
+\begin{lstlisting}
+from mpi4py import MPI
+import os
+
+CHUNK_SIZE = 2048 
+FILE_TO_SEND = 'testing_file.txt'
+
+comm = MPI.COMM_WORLD
+size = comm.Get_size()
+rank = comm.Get_rank()
+
+if rank == 0:
+    with open(FILE_TO_SEND, 'rb') as file:
+        chunk_id = 0
+        while (data := file.read(CHUNK_SIZE)):
+            dest = (chunk_id % (size - 1)) + 1
+            comm.send(data, dest=dest, tag=chunk_id)
+            chunk_id += 1
+
+    for i in range(1, size):
+        comm.send(None, dest=i, tag=0)  
+\end{lstlisting}
+
+\subsection*{Worker Process Code}
+\begin{lstlisting}
+from mpi4py import MPI
+
+OUTPUT_FILE = 'received_chunk_'
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+
+while True:
+    data = comm.recv(source=0, tag=MPI.ANY_TAG)
+    if data is None:
+        break
+
+    with open(f"{OUTPUT_FILE}{rank}.txt", 'ab') as file:
+        file.write(data)
+\end{lstlisting}
+
+\section*{Roles and Responsibilities}
+\begin{itemize}
+    \item **Master Process**: Reads the file, splits it into chunks, and distributes them to worker processes.
+    \item **Worker Processes**: Receive file chunks and write them to disk.
+\end{itemize}
+
+\section*{Testing}
+\subsection*{Local Testing}
+The MPI system was tested locally on a single machine with multiple processes. The following steps were performed:
+\begin{enumerate}
+    \item The master process split the file into chunks and distributed them to workers.
+    \item Worker processes successfully received and wrote the chunks to disk.
+    \item The chunks were reassembled to verify file integrity.
+\end{enumerate}
+
+\subsection*{Cluster Testing}
+The system was tested on a small cluster of 4 nodes. File transfer completed successfully with consistent results across nodes.
+
+\section*{Conclusion}
+The MPI file transfer system was successfully implemented and tested. The system demonstrates efficient parallel processing for file transfer tasks using the MPI4Py library.
+
+\section*{References}
+\begin{itemize}
+    \item MPI4Py Documentation: \url{https://mpi4py.readthedocs.io/}
+    \item LaTeX Documentation: \url{https://www.latex-project.org/}
+\end{itemize}
+
+\end{document}
