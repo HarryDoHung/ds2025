@@ -1,0 +1,146 @@
+\documentclass[a4paper,12pt]{article}
+
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{margin=1in}
+
+\lstset{
+    language=Python,
+    frame=single,
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{green!50!black},
+    numbers=left,
+    numberstyle=\tiny,
+    stepnumber=1,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    breaklines=true,
+    breakatwhitespace=true,
+    tabsize=4
+}
+
+\title{Practical Work 2}
+\author{Do Cong Tuan Hung}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Goal}
+The goal of this practical work is to upgrade the previously implemented TCP file transfer system to use Remote Procedure Call (RPC). The system now includes:
+\begin{itemize}
+    \item RPC server
+    \item RPC client
+    \item File transfer functionality over RPC
+\end{itemize}
+
+\section*{Protocol Design}
+The RPC service facilitates file transfer using a client-server model. The workflow includes:
+\begin{enumerate}
+    \item The server registers an RPC service to handle file transfer requests.
+    \item The client invokes the RPC method to request a file.
+    \item The server sends the file to the client in chunks via the RPC service.
+    \item The client writes the received chunks to a file.
+\end{enumerate}
+
+\section*{System Design}
+The system is organized into the following components:
+\begin{itemize}
+    \item **Server**:
+          \begin{itemize}
+              \item Registers the RPC service.
+              \item Handles file transfer requests from the client.
+          \end{itemize}
+    \item **Client**:
+          \begin{itemize}
+              \item Invokes the RPC method to request a file.
+              \item Writes the received data to disk.
+          \end{itemize}
+\end{itemize}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=\textwidth]{system_organization.png}
+    \caption{System Organization}
+    \label{fig:system_organization}
+\end{figure}
+
+\section*{Implementation}
+The implementation is done using the Python `xmlrpc` library. Below are the code snippets for the server and client:
+
+\subsection*{Server Code}
+\begin{lstlisting}
+from xmlrpc.server import SimpleXMLRPCServer
+
+HOST = '127.0.0.1'
+PORT = 1234
+BUFFER_SIZE = 1024
+FILE_TO_SEND = 'testing_file.txt'
+
+def send_file():
+    with open(FILE_TO_SEND, 'rb') as file:
+        while (data := file.read(BUFFER_SIZE)):
+            yield data
+
+server = SimpleXMLRPCServer((HOST, PORT))
+print(f"RPC Server running on {HOST}:{PORT}")
+
+server.register_function(send_file, "send_file")
+server.serve_forever()
+\end{lstlisting}
+
+\subsection*{Client Code}
+\begin{lstlisting}
+import xmlrpc.client
+
+HOST = '127.0.0.1'
+PORT = 1234
+OUTPUT_FILE = 'received_file.txt'
+
+server = xmlrpc.client.ServerProxy(f"http://{HOST}:{PORT}")
+print(f"Connected to RPC server at {HOST}:{PORT}")
+
+with open(OUTPUT_FILE, 'wb') as file:
+    for chunk in server.send_file():
+        file.write(chunk)
+
+print("File received and saved successfully.")
+\end{lstlisting}
+
+\section*{Roles and Responsibilities}
+\begin{itemize}
+    \item **Server**: Provides the `send_file` RPC method, which streams the file in chunks to the client.
+    \item **Client**: Invokes the `send_file` method to receive the file and writes it to disk.
+\end{itemize}
+
+\section*{Testing}
+\subsection*{Local Testing}
+The RPC server and client scripts were run on the same machine. The following steps were performed:
+\begin{enumerate}
+    \item The server was started, displaying `RPC Server running on 127.0.0.1:1234`.
+    \item The client connected to the server and successfully received the file.
+    \item The received file matched the original file.
+\end{enumerate}
+
+\subsection*{Network Testing}
+The server and client were run on different machines connected to the same network. The client successfully received the file via the RPC service.
+
+\section*{Conclusion}
+The RPC file transfer system was successfully implemented and tested. The system provides a robust file transfer mechanism using Python's `xmlrpc` library.
+
+\section*{References}
+\begin{itemize}
+    \item Python XML-RPC Documentation: \url{https://docs.python.org/3/library/xmlrpc.html}
+    \item LaTeX Documentation: \url{https://www.latex-project.org/}
+\end{itemize}
+
+\end{document}
